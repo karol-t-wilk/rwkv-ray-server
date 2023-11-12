@@ -1,21 +1,12 @@
 import asyncio
 from dataclasses import dataclass, field
 import time
-from rwkv.utils import PIPELINE, PIPELINE_ARGS
-from rwkv.model import RWKV
+from rwkv.utils import PIPELINE_ARGS
 import ray
 from ray.util.queue import Queue, Empty
 
+from model_holder import ModelHolder
 
-@ray.remote
-class ModelHolder:
-    def __init__(self, model_path) -> None:
-        model = RWKV(model=model_path, strategy="cpu fp32")
-        self.pipeline = PIPELINE(model, "rwkv_vocab_v20230424")
-
-    async def generate(self, res, prompt: str, args: PIPELINE_ARGS, max_tokens: int):
-        q = await res.get_queue.remote()
-        self.pipeline.generate(ctx=prompt, token_count=max_tokens, args=args, callback=lambda c: q.put(c))
 
 @ray.remote
 @dataclass
@@ -50,7 +41,6 @@ class CollectorResponse:
             await asyncio.sleep(diff)
             now = time.time()
 
-
         res = ""
         while not self.queue.empty():
             try:
@@ -76,7 +66,14 @@ class Collector:
         do_start.remote(self.model_holder, res, prompt, args, max_tokens)
         return res
 
+
 @ray.remote
-def do_start(model_holder: ModelHolder, res: CollectorResponse, prompt: str, args: PIPELINE_ARGS, max_tokens: int):
-        ray.wait([model_holder.generate.remote(res, prompt, args, max_tokens)])
-        res.on_end.remote()
+def do_start(
+    model_holder: ModelHolder,
+    res: CollectorResponse,
+    prompt: str,
+    args: PIPELINE_ARGS,
+    max_tokens: int,
+):
+    ray.wait([model_holder.generate.remote(res, prompt, args, max_tokens)])
+    res.on_end.remote()

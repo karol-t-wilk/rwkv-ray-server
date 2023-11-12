@@ -1,0 +1,5 @@
+applications:
+  - name: RWKVServer
+    import_path: rwkv_server:app
+    args:
+      model_path: .cache/RWKV-4-World-0.1B-v1-20230520-ctx4096

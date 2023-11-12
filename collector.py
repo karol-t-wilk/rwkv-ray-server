@@ -42,9 +42,9 @@ class CollectorResponse:
             now = time.time()
 
         res = ""
-        while not self.queue.empty():
+        while len(res) == 0 or not self.queue.empty():
             try:
-                new = await self.queue.get_async(block=False)
+                new = await self.queue.get_async()
             except Empty:
                 break
             res += self.last_chunk

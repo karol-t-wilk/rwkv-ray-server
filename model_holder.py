@@ -4,7 +4,7 @@ from rwkv.model import RWKV
 from rwkv.utils import PIPELINE, PIPELINE_ARGS
 
 
-@ray.remote
+@ray.remote(num_cpus=12)
 class ModelHolder:
     def __init__(self, model_path, strategy, tokenizer_path) -> None:
         if strategy is None:

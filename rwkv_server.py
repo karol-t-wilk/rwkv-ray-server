@@ -17,7 +17,7 @@ from rwkv.utils import PIPELINE_ARGS
 fastapi_app = FastAPI()
 
 
-@serve.deployment(num_replicas=1, ray_actor_options={"num_cpus": 12, "num_gpus": 0})
+@serve.deployment(num_replicas=1, ray_actor_options={"num_cpus": 2, "num_gpus": 0})
 @serve.ingress(fastapi_app)
 class Model:
     def __init__(self, model_path, strategy, tokenizer_path) -> None:
@@ -38,7 +38,7 @@ class Model:
         async def response_stream():
             while (c := await res.next.remote()) is not None:
                 chunk, is_end = c
-                yield json.dumps({"text": chunk, "reached_end": is_end})
+                yield json.dumps({"text": chunk, "reached_end": is_end}) + "\n"
 
         return StreamingResponse(response_stream(), media_type="application/json")
 

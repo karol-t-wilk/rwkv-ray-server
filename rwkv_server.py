@@ -24,7 +24,7 @@ class Model:
         self.model_holder = ModelHolder.remote(
             model_path, strategy, tokenizer_path
         )
-        self.collector = Collector.remote(self.model_holder)
+        self.collector = Collector.remote(self.model_holder, 0.5)
 
     @fastapi_app.post("/generate")
     async def handle_generate(self) -> Any:
@@ -38,7 +38,8 @@ class Model:
         async def response_stream():
             while (c := await res.next.remote()) is not None:
                 chunk, is_end = c
-                yield json.dumps({"text": chunk, "reached_end": is_end}) + "\n"
+                if chunk:
+                    yield json.dumps({"text": chunk, "reached_end": is_end}) + "\n"
 
         return StreamingResponse(response_stream(), media_type="application/json")
 

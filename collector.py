@@ -25,7 +25,7 @@ class CollectorResponse:
 
     async def next(self):
         if self.is_finished and self.queue.empty():
-            if self.last_chunk is not None:
+            if self.last_chunk:
                 res = self.last_chunk
                 self.last_chunk = None
                 return (res, True)
@@ -44,7 +44,7 @@ class CollectorResponse:
         res = ""
         while len(res) == 0 or not self.queue.empty():
             try:
-                new = await self.queue.get_async()
+                new = await self.queue.get_async(timeout=1)
             except Empty:
                 break
             res += self.last_chunk

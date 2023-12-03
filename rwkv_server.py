@@ -3,6 +3,7 @@ import os
 from typing import Any
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 import ray.serve as serve
 
@@ -16,6 +17,19 @@ from rwkv.utils import PIPELINE_ARGS
 
 fastapi_app = FastAPI()
 
+class GenerationBody(BaseModel):
+    prompt: str
+    max_token_count: int
+    temperature: float | None = None
+    top_k: float | None = None
+    top_p: float | None = None
+    alpha_frequency: float | None = None
+    alpha_presence: float | None = None
+    alpha_decay: float | None = None
+    token_ban: list | None = None
+    token_stop: list | None = None
+    chunk_len: int | None = None
+
 
 @serve.deployment(num_replicas=1, ray_actor_options={"num_cpus": 2, "num_gpus": 0})
 @serve.ingress(fastapi_app)
@@ -27,12 +41,23 @@ class Model:
         self.collector = Collector.remote(self.model_holder, 0.5)
 
     @fastapi_app.post("/generate")
-    async def handle_generate(self) -> Any:
-        args = PIPELINE_ARGS()
+    async def handle_generate(self, body: GenerationBody) -> Any:
+        args = PIPELINE_ARGS(
+            temperature=body.temperature,
+            top_k=body.top_k,
+            top_p=body.top_p,
+            alpha_decay=body.alpha_decay,
+            alpha_frequency=body.alpha_frequency,
+            alpha_presence=body.alpha_presence,
+            token_ban=body.token_ban,
+            token_stop=body.token_stop,
+            chunk_len=body.chunk_len
+        )
+
         res = await self.collector.generate.remote(
-            "Question: How to properly formulate a prompt for the RWKV 4 World model?\nAnswer:",
+            body.prompt,
             args,
-            128,
+            body.max_token_count,
         )
 
         async def response_stream():

@@ -35,6 +35,7 @@ class CollectorResponse:
         if self.last_chunk is None:
             self.last_chunk = await self.queue.get_async()
 
+
         now = time.time()
         while now - self.last_time < self.minimum_time_between_responses:
             diff = now - self.last_time
